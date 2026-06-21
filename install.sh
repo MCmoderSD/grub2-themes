@@ -116,7 +116,11 @@ generate() {
 
   # Determine which configuration file and assets to use
   if [[ -n "$custom_resolution" ]]; then
-    install_depends ImageMagick
+    if has_command apt || has_command pacman || has_command eopkg; then
+      install_depends imagemagick
+    else
+      install_depends ImageMagick
+    fi
     asset_type=$(get_asset_type "$custom_resolution")
     cp -a --no-preserve=ownership "${REO_DIR}/config/theme-${asset_type}.txt" "${THEME_DIR}/${theme}/theme.txt"
     # Replace resolution in theme.txt
@@ -131,10 +135,14 @@ generate() {
 
   # Use custom background.jpg as grub background image
   if [[ -f "${REO_DIR}/background.jpg" ]]; then
-    install_depends ImageMagick
+    if has_command apt || has_command pacman || has_command eopkg; then
+      install_depends imagemagick
+    else
+      install_depends ImageMagick
+    fi
     prompt -w "\n Using custom background.jpg as grub background image..."
     cp -a --no-preserve=ownership "${REO_DIR}/background.jpg" "${THEME_DIR}/${theme}/background.jpg"
-    magick -auto-orient "${THEME_DIR}/${theme}/background.jpg" "${THEME_DIR}/${theme}/background.jpg"
+    magick "${THEME_DIR}/${theme}/background.jpg" -auto-orient "${THEME_DIR}/${theme}/background.jpg"
   fi
 
   # Determine which assets to use based on custom resolution or screen
@@ -436,15 +444,21 @@ updating_grub() {
 
 function install_program () {
   if has_command zypper; then
-    zypper in "$@"
+    zypper in -y "$@"
+  elif has_command swupd; then
+    swupd bundle-add "$@"
   elif has_command apt-get; then
     apt-get install "$@"
   elif has_command dnf; then
     dnf install -y "$@"
   elif has_command yum; then
-    yum install "$@"
+    yum install -y "$@"
   elif has_command pacman; then
-    pacman -S --noconfirm "$@"
+    pacman -Syyu --noconfirm --needed "$@"
+  elif has_command xbps-install; then
+    xbps-install -Sy "$@"
+  elif has_command eopkg; then
+    eopkg -y install "$@"
   fi
 }
 
